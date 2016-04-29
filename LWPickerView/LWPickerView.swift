@@ -29,6 +29,14 @@ private let kPickerColor = UIColor.whiteColor()
 typealias PickerTypeAloneDoneHandler = ((selectedRow: Int, result: String) -> Void)
 
 /**
+ DateMode类型Picker点击确定回调
+ 
+ - selectedDate:    当前选择的时间
+ - dateString:      当前选择时间对应的字符串
+ */
+typealias PickerTypeDateDoneHandler = ((selectedDate: NSDate, dateString: String?) -> Void)
+
+/**
  Picker点击取消回调
  */
 typealias PickerAllCancelHandler = (() -> Void)
@@ -56,7 +64,7 @@ class LWPickerView: UIView {
     private var pickerType = LWPickerType.Alone
     
     private var contentView = UIView()
-    private var pickerView: UIPickerView!
+    private var pickerView: UIView!
     private var cancelHandler: PickerAllCancelHandler?
     
     
@@ -76,6 +84,16 @@ class LWPickerView: UIView {
     private var selectedResult: String?
     private var aloneTypeDoneHandler: PickerTypeAloneDoneHandler?
     
+    
+    /* ********************************************
+     @Type: LWPickerType.DateMode
+     ******************************************** */
+    
+    private lazy var dateFormatter: NSDateFormatter = {
+        return NSDateFormatter()
+    }()
+    private var datePickerMode: UIDatePickerMode = .Date
+    private var dateModeTypeDoneHandler: PickerTypeDateDoneHandler?
     
     
     // MARK: - Life cycle
@@ -162,18 +180,19 @@ class LWPickerView: UIView {
     }
     
     // 配置PickerView
-    private func setupPickerView() -> UIPickerView {
+    private func setupPickerView() -> UIView {
     
-        var picker: UIPickerView!
+        var picker: UIView!
         
         switch pickerType {
         case .DateMode:
-            print("DateMode")
+            picker = UIDatePicker(frame: CGRectZero)
+            (picker as! UIDatePicker).datePickerMode = datePickerMode
             
         default:
             picker = UIPickerView(frame: CGRectZero)
-            picker.dataSource = self
-            picker.delegate = self
+            (picker as! UIPickerView).dataSource = self
+            (picker as! UIPickerView).delegate = self
             break
         }
         picker.backgroundColor = kPickerColor
@@ -204,6 +223,11 @@ class LWPickerView: UIView {
                 aloneTypeDoneHandler?(selectedRow: selectedRow, result: result)
             } else {
                 aloneTypeDoneHandler?(selectedRow: 0, result: dataSource[0])
+            }
+        
+        case .DateMode:
+            if let datePicker = pickerView as? UIDatePicker {
+                dateModeTypeDoneHandler?(selectedDate: datePicker.date, dateString: dateFormatter.stringFromDate(datePicker.date))
             }
             
         default:
@@ -294,7 +318,7 @@ class LWPickerView: UIView {
         }
     }
     
-    private func addConstraintsWithToolBar(toolBar: UIToolbar, pickerView: UIPickerView) {
+    private func addConstraintsWithToolBar(toolBar: UIToolbar, pickerView: UIView) {
         // ToolBar
         toolBar.translatesAutoresizingMaskIntoConstraints = false
         let horiForToolBarConstrants = NSLayoutConstraint.constraintsWithVisualFormat("H:|[toolBar]|",
@@ -401,6 +425,7 @@ extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
         }
     }
     
+    
 }
 
 
@@ -414,7 +439,7 @@ extension LWPickerView {
     func show() {
         
         guard let window = UIApplication.sharedApplication().keyWindow else {
-            print("当前Window为空")
+            print("当前window为空")
             return
         }
         
@@ -466,7 +491,7 @@ extension LWPickerView {
             print("\(NSStringFromClass(LWPickerView.self))数据源数量不应为空")
         }
         
-        pickerType = LWPickerType.Alone
+        pickerType = .Alone
         dataSource = aDataSource
         
         setupMaskView()
@@ -480,7 +505,8 @@ extension LWPickerView {
      - parameter animated: 是否动画滚动
      */
     func showSelectedRow(aRow: Int, animated: Bool) {
-        guard pickerType == LWPickerType.Alone else {
+        
+        guard pickerType == .Alone else {
             print("当前LWPickerType不为Alone")
             return
         }
@@ -494,7 +520,7 @@ extension LWPickerView {
         }
         
         // 更新选择的行和值
-        pickerView.selectRow(aRow, inComponent: 0, animated: animated)
+        (pickerView as! UIPickerView).selectRow(aRow, inComponent: 0, animated: animated)
         selectedRow = aRow
         selectedResult = dataSource[aRow]
     }
@@ -503,16 +529,115 @@ extension LWPickerView {
     /**
      Alone类型Picker点击确定回调
      */
-    func didClickDoneWithTypeAloneHandler(handler: PickerTypeAloneDoneHandler?) {
+    func didClickDoneForTypeAloneHandler(handler: PickerTypeAloneDoneHandler?) {
+        
+        guard pickerType == .Alone else {
+            print("当前LWPickerType不为Alone")
+            return
+        }
         aloneTypeDoneHandler = handler
     }
     
 }
 
 
+// MARK: - DateMode
 
+extension LWPickerView {
 
-
+    /**
+     初始化一个日期Picker
+     
+     - parameter aDatePickerMode:   日期类型
+     - parameter title:             标题
+     */
+    convenience init(aDatePickerMode: UIDatePickerMode, aTitle: String?) {
+        self.init(frame: CGRectZero)
+     
+        pickerType = .DateMode
+        datePickerMode = aDatePickerMode
+        
+        setupMaskView()
+        setupContentViewWithTitle(aTitle)
+    }
+    
+    /**
+     设置当前时间
+     */
+    func setDate(date: NSDate, animated: Bool) {
+        
+        guard pickerType == .DateMode else {
+            print("当前Picker并非DateMode类型，所以无法设置")
+            return
+        }
+        
+        if let picker = pickerView as? UIDatePicker {
+            picker.setDate(date, animated: animated)
+        }
+    }
+    
+    
+    func didClickDoneForTypeDateWithFormat(dateFormat: String?, handler: PickerTypeDateDoneHandler?) {
+        
+        guard pickerType == .DateMode else {
+            print("当前LWPickerType不为DateMode")
+            return
+        }
+        
+        dateFormatter.dateFormat = dateFormat
+        dateModeTypeDoneHandler = handler
+    }
+    
+    
+    /**
+     设置datePicker的最大最小时间  When min > max, the values are ignored. Ignored in countdown timer mode
+     
+     - parameter minimumDate: 最小时间
+     - parameter maximumDate: 最大时间
+     */
+    func setMinimumDate(minimumDate: NSDate?, maximumDate: NSDate?) {
+        
+        guard pickerType == .DateMode else {
+            print("当前Picker并非DateMode类型，所以无法设置")
+            return
+        }
+        
+        if let picker = pickerView as? UIDatePicker {
+            guard datePickerMode != .CountDownTimer else {
+                return
+            }
+            picker.minimumDate = minimumDate
+            picker.maximumDate = maximumDate
+        }
+    }
+    
+    
+    /**
+     设置倒计时
+     
+     - parameter countDownDuration: for UIDatePickerModeCountDownTimer, ignored otherwise. default is 0.0. limit is 23:59
+     - parameter minuteInterval:    interval must be evenly divided into 60. default is 1. min is 1, max is 30
+     */
+    func setCountDownDuration(countDownDuration: NSTimeInterval, minuteInterval: Int) {
+        
+        guard pickerType == .DateMode else {
+            print("当前Picker并非DateMode类型，所以无法设置")
+            return
+        }
+        
+        if let picker = pickerView as? UIDatePicker {
+            guard datePickerMode == .CountDownTimer else {
+                return
+            }
+            picker.countDownDuration = countDownDuration
+            picker.minuteInterval = minuteInterval
+        }
+    }
+    
+    
+    
+    
+}
 
 
 
