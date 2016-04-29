@@ -13,6 +13,8 @@
 		00D585631CD1FBB5000205EF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00D585621CD1FBB5000205EF /* Assets.xcassets */; };
 		00D585661CD1FBB5000205EF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 00D585641CD1FBB5000205EF /* LaunchScreen.storyboard */; };
 		00D5856F1CD1FBDA000205EF /* LWPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D5856E1CD1FBDA000205EF /* LWPickerView.swift */; };
+		00F80A7A1CD3439E00287623 /* area2.plist in Resources */ = {isa = PBXBuildFile; fileRef = 00F80A791CD3439E00287623 /* area2.plist */; };
+		00F80A7C1CD3465200287623 /* area1.plist in Resources */ = {isa = PBXBuildFile; fileRef = 00F80A7B1CD3465200287623 /* area1.plist */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +26,8 @@
 		00D585651CD1FBB5000205EF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		00D585671CD1FBB5000205EF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00D5856E1CD1FBDA000205EF /* LWPickerView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LWPickerView.swift; sourceTree = "<group>"; };
+		00F80A791CD3439E00287623 /* area2.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = area2.plist; sourceTree = "<group>"; };
+		00F80A7B1CD3465200287623 /* area1.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = area1.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +74,8 @@
 		00D5856D1CD1FBBE000205EF /* Class */ = {
 			isa = PBXGroup;
 			children = (
+				00F80A7B1CD3465200287623 /* area1.plist */,
+				00F80A791CD3439E00287623 /* area2.plist */,
 				00D5856E1CD1FBDA000205EF /* LWPickerView.swift */,
 			);
 			name = Class;
@@ -134,6 +140,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				00D585661CD1FBB5000205EF /* LaunchScreen.storyboard in Resources */,
+				00F80A7C1CD3465200287623 /* area1.plist in Resources */,
+				00F80A7A1CD3439E00287623 /* area2.plist in Resources */,
 				00D585631CD1FBB5000205EF /* Assets.xcassets in Resources */,
 				00D585611CD1FBB5000205EF /* Main.storyboard in Resources */,
 			);
@@ -302,6 +310,7 @@
 				00D5856C1CD1FBB5000205EF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

@@ -29,12 +29,21 @@ private let kPickerColor = UIColor.whiteColor()
 typealias PickerTypeAloneDoneHandler = ((selectedRow: Int, result: String) -> Void)
 
 /**
- DateMode类型Picker点击确定回调
+ Date类型Picker点击确定回调
  
  - selectedDate:    当前选择的时间
  - dateString:      当前选择时间对应的字符串
  */
 typealias PickerTypeDateDoneHandler = ((selectedDate: NSDate, dateString: String?) -> Void)
+
+/**
+ Area类型Picker点击确定回调
+ 
+ - province:    省
+ - city:        市
+ - district:    区
+ */
+typealias PickerTypeAreaDoneHandler = ((province: String?, city: String?, district: String?) -> Void)
 
 /**
  Picker点击取消回调
@@ -47,13 +56,25 @@ typealias PickerAllCancelHandler = (() -> Void)
  当前控件类型
  
  - Alone:    单列Picker
- - DateMode: 系统日期Picker
- - AreaMode: 国内地区Picker
+ - Date:     系统日期Picker
+ - Area:     国内地区Picker
  */
 @objc private enum LWPickerType: Int {
     case Alone      = 1
-    case DateMode   = 2
-    case AreaMode   = 3
+    case Date       = 2
+    case Area       = 3
+}
+
+
+/**
+ 地区选择器类型
+ 
+ - ProvinceCityDistrict: 省市区三级
+ - ProvinceCity:         省市二级
+ */
+@objc enum LWAreaType: Int {
+    case ProvinceCityDistrict   = 1
+    case ProvinceCity           = 2
 }
 
 
@@ -94,6 +115,23 @@ class LWPickerView: UIView {
     }()
     private var datePickerMode: UIDatePickerMode = .Date
     private var dateModeTypeDoneHandler: PickerTypeDateDoneHandler?
+    
+    
+    /* ********************************************
+     @Type: LWPickerType.AreaMode
+     ******************************************** */
+    
+    private var areaType: LWAreaType = .ProvinceCityDistrict
+    private lazy var areaSource: [[String : AnyObject]] = {
+        return [[String : AnyObject]]()
+    }()
+    private var cities = [[String : AnyObject]]()
+    private var districts = [String]()
+    private var province: String?
+    private var city: String?
+    private var district: String?
+    private var areaTypeDoneHandler: PickerTypeAreaDoneHandler?
+    
     
     
     // MARK: - Life cycle
@@ -141,16 +179,16 @@ class LWPickerView: UIView {
     // 配置工具条
     private func setupToolBarWithTitle(aTitle: String?) -> UIToolbar {
         
+        // space Item
+        let spaceItem = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace,
+                                        target: nil,
+                                        action: nil)
+        
         // Cancel Item
         let leftItem = UIBarButtonItem(barButtonSystemItem: .Cancel,
                                        target: self,
                                        action: #selector(LWPickerView.dismiss))
         leftItem.tintColor = kItemColor
-        
-        // Left Space Item
-        let leftSpaceItem = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace,
-                                            target: nil,
-                                            action: nil)
         
         // Title Item
         let titleItem = UIBarButtonItem(title: aTitle,
@@ -159,10 +197,6 @@ class LWPickerView: UIView {
                                         action: nil)
         titleItem.tintColor = kItemColor
         
-        // Right Space Item
-        let rightSpaceItem = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace,
-                                             target: nil,
-                                             action: nil)
         
         // Done Item
         let rightItem = UIBarButtonItem(barButtonSystemItem: .Done,
@@ -174,7 +208,7 @@ class LWPickerView: UIView {
         // ToolBar
         let toolBar = UIToolbar(frame: CGRectZero)
         toolBar.barTintColor = kToolBarColor
-        toolBar.items = [leftItem, leftSpaceItem, titleItem, rightSpaceItem, rightItem]
+        toolBar.items = [leftItem, spaceItem, titleItem, spaceItem, rightItem]
         
         return toolBar
     }
@@ -185,7 +219,7 @@ class LWPickerView: UIView {
         var picker: UIView!
         
         switch pickerType {
-        case .DateMode:
+        case .Date:
             picker = UIDatePicker(frame: CGRectZero)
             (picker as! UIDatePicker).datePickerMode = datePickerMode
             
@@ -225,13 +259,13 @@ class LWPickerView: UIView {
                 aloneTypeDoneHandler?(selectedRow: 0, result: dataSource[0])
             }
         
-        case .DateMode:
+        case .Area:
+            areaTypeDoneHandler?(province: province, city: city, district: district)
+        
+        case .Date:
             if let datePicker = pickerView as? UIDatePicker {
                 dateModeTypeDoneHandler?(selectedDate: datePicker.date, dateString: dateFormatter.stringFromDate(datePicker.date))
             }
-            
-        default:
-            break
         }
         
     }
@@ -386,6 +420,9 @@ extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
         case .Alone:
             return 1
             
+        case .Area:
+            return areaType == .ProvinceCityDistrict ? 3 : 2;
+            
         default:
             return 0
         }
@@ -397,6 +434,36 @@ extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
         case .Alone:
             return dataSource.count
             
+        case .Area:
+            switch areaType {
+            case .ProvinceCityDistrict:
+                switch component {
+                case 0:
+                    // 省
+                    return areaSource.count
+                case 1:
+                    // 市
+                    return cities.count
+                case 2:
+                    // 区
+                    return districts.count
+                default:
+                    return 0
+                }
+                
+            case .ProvinceCity:
+                switch component {
+                case 0:
+                    // 省
+                    return areaSource.count
+                case 1:
+                    // 市
+                    return cities.count
+                default:
+                    return 0
+                }
+            }
+
         default:
             return 0
         }
@@ -407,6 +474,36 @@ extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
         switch pickerType {
         case .Alone:
             return dataSource[row]
+            
+        case .Area:
+            switch areaType {
+            case .ProvinceCityDistrict:
+                switch component {
+                case 0:
+                    // 省
+                    return areaSource[row]["state"] as? String
+                case 1:
+                    // 市
+                    return cities[row]["city"] as? String
+                case 2:
+                    // 区
+                    return districts[row]
+                default:
+                    return nil
+                }
+                
+            case .ProvinceCity:
+                switch component {
+                case 0:
+                    // 省
+                    return areaSource[row]["state"] as? String
+                case 1:
+                    // 市
+                    return cities[row]["city"] as? String
+                default:
+                    return nil
+                }
+            }
             
         default:
             return nil
@@ -419,6 +516,90 @@ extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
         case .Alone:
             selectedRow = row
             selectedResult = dataSource[row]
+            
+        case .Area:
+            switch areaType {
+            case .ProvinceCityDistrict:
+                switch component {
+                case 0:
+                    // 省
+                    guard areaSource.count > 0 else {
+                        return
+                    }
+                    province = areaSource[row]["state"] as? String
+                    if let theCities = areaSource[row]["cities"] as? [[String : AnyObject]] {
+                        cities = theCities
+                        city = cities.first?["city"] as? String
+                        
+                        if let theDistricts = cities.first?["areas"] as? [String] {
+                            districts = theDistricts
+                            district = theDistricts.first
+                        } else {
+                            district = nil
+                        }
+                    } else {
+                        city = nil
+                        district = nil
+                    }
+                    pickerView.selectRow(0, inComponent: 1, animated: true)
+                    pickerView.reloadComponent(1)
+                    pickerView.selectRow(0, inComponent: 2, animated: true)
+                    pickerView.reloadComponent(2)
+                    
+                case 1:
+                    // 市
+                    guard cities.count > 0 else {
+                        return
+                    }
+                    city = cities[row]["city"] as? String
+                    if let theDistricts = cities[row]["areas"] as? [String] {
+                        districts = theDistricts
+                        district = theDistricts.first
+                    } else {
+                        district = nil
+                    }
+                    pickerView.selectRow(0, inComponent: 2, animated: true)
+                    pickerView.reloadComponent(2)
+                    
+                case 2:
+                    // 区
+                    guard districts.count > 0 else {
+                        return
+                    }
+                    district = districts[row]
+                    
+                default:
+                    break
+                }
+                
+            case .ProvinceCity:
+                switch component {
+                case 0:
+                    // 省
+                    guard areaSource.count > 0 else {
+                        return
+                    }
+                    province = areaSource[row]["state"] as? String
+                    if let theCities = areaSource[row]["cities"] as? [[String : AnyObject]] {
+                        cities = theCities
+                        city = cities.first?["city"] as? String
+                    } else {
+                        city = nil
+                    }
+                    pickerView.selectRow(0, inComponent: 1, animated: true)
+                    pickerView.reloadComponent(1)
+                    
+                case 1:
+                    // 市
+                    guard cities.count > 0 else {
+                        return
+                    }
+                    city = cities[row]["city"] as? String
+                    
+                default:
+                    break
+                }
+            }
             
         default:
             break
@@ -474,7 +655,7 @@ extension LWPickerView {
 }
 
 
-// MARK: - LWPickerType.Alone
+// MARK: - Alone
 
 extension LWPickerView {
 
@@ -541,7 +722,7 @@ extension LWPickerView {
 }
 
 
-// MARK: - DateMode
+// MARK: - Date
 
 extension LWPickerView {
 
@@ -554,7 +735,7 @@ extension LWPickerView {
     convenience init(aDatePickerMode: UIDatePickerMode, aTitle: String?) {
         self.init(frame: CGRectZero)
      
-        pickerType = .DateMode
+        pickerType = .Date
         datePickerMode = aDatePickerMode
         
         setupMaskView()
@@ -566,8 +747,8 @@ extension LWPickerView {
      */
     func setDate(date: NSDate, animated: Bool) {
         
-        guard pickerType == .DateMode else {
-            print("当前Picker并非DateMode类型，所以无法设置")
+        guard pickerType == .Date else {
+            print("当前Picker并非Date类型，所以无法设置")
             return
         }
         
@@ -579,8 +760,8 @@ extension LWPickerView {
     
     func didClickDoneForTypeDateWithFormat(dateFormat: String?, handler: PickerTypeDateDoneHandler?) {
         
-        guard pickerType == .DateMode else {
-            print("当前LWPickerType不为DateMode")
+        guard pickerType == .Date else {
+            print("当前LWPickerType不为Date")
             return
         }
         
@@ -597,8 +778,8 @@ extension LWPickerView {
      */
     func setMinimumDate(minimumDate: NSDate?, maximumDate: NSDate?) {
         
-        guard pickerType == .DateMode else {
-            print("当前Picker并非DateMode类型，所以无法设置")
+        guard pickerType == .Date else {
+            print("当前Picker并非Date类型，所以无法设置")
             return
         }
         
@@ -620,8 +801,8 @@ extension LWPickerView {
      */
     func setCountDownDuration(countDownDuration: NSTimeInterval, minuteInterval: Int) {
         
-        guard pickerType == .DateMode else {
-            print("当前Picker并非DateMode类型，所以无法设置")
+        guard pickerType == .Date else {
+            print("当前Picker并非Date类型，所以无法设置")
             return
         }
         
@@ -634,13 +815,73 @@ extension LWPickerView {
         }
     }
     
-    
-    
-    
 }
 
 
+// MARK: - Area
 
+extension LWPickerView {
+
+    /**
+     初始化一个地区选择器
+     
+     - parameter anAreaType: 地区选择器目录类型
+     - parameter aTitle:     标题
+     */
+    convenience init(anAreaType: LWAreaType, aTitle: String?) {
+        self.init(frame: CGRectZero)
+     
+        pickerType = .Area
+        areaType = anAreaType
+        
+        // 获取数据
+        let fileName = areaType == .ProvinceCityDistrict ? "area1" : "area2"
+        print(fileName)
+        if let filePath = NSBundle.mainBundle().pathForResource(fileName, ofType: "plist") {
+            
+            areaSource = NSArray(contentsOfFile: filePath) as! [[String : AnyObject]]
+            if let theState = areaSource.first {
+                
+                province = theState["state"] as? String
+                if let theCities = theState["cities"] as? [[String : AnyObject]] {
+                    
+                    cities = theCities
+                    if let theCity = theCities.first {
+                        
+                        city = theCity["city"] as? String
+                        if areaType == .ProvinceCityDistrict {
+                            if let theDistricts = theCity["areas"] as? [String] {
+                                
+                                districts = theDistricts
+                                district = theDistricts.first
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            fatalError("没找到地区数据\(fileName)源文件")
+        }
+        
+        setupMaskView()
+        setupContentViewWithTitle(aTitle)
+    }
+    
+    
+    /**
+     Area类型Picker点击确定回调击
+     */
+    func didClickDoneForTypeAreaHandler(handler: PickerTypeAreaDoneHandler?) {
+        
+        guard pickerType == .Area else {
+            print("当前LWPickerType不为Area")
+            return
+        }
+        areaTypeDoneHandler = handler
+    }
+    
+    
+}
 
 
 

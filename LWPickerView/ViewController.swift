@@ -55,12 +55,30 @@ class ViewController: UIViewController {
             print("selectedDate:\(selectedDate)")
             print("dateString:\(dateString)")
         }
-        alonePicker.didClickCancelHandler {
+        datePicker.didClickCancelHandler {
             print("dismiss")
         }
     }
     
     
+    // MARK: - AreaPicker
+    
+    private let areaPicker: LWPickerView = {
+        return LWPickerView(anAreaType: .ProvinceCityDistrict, aTitle: "AreaPicker")
+    }()
+    
+    @IBAction func showAreaPicker(sender: UIButton) {
+        
+        areaPicker.show()
+        areaPicker.didClickDoneForTypeAreaHandler { (province, city, district) in
+            print("province:\(province)")
+            print("city:\(city)")
+            print("district:\(district)")
+        }
+        areaPicker.didClickCancelHandler {
+            print("dismiss")
+        }
+    }
     
 }
 
