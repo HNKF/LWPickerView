@@ -19,6 +19,22 @@ private let kItemColor = UIColor.grayColor()
 private let kToolBarColor = UIColor.groupTableViewBackgroundColor()
 private let kPickerColor = UIColor.whiteColor()
 
+
+/**
+ Alone类型Picker点击确定回调
+ 
+ - selectedRow: 当前选择的行
+ - result:      当前选择行对应的值
+ */
+typealias PickerTypeAloneDoneHandler = ((selectedRow: Int, result: String) -> Void)
+
+/**
+ Picker点击取消回调
+ */
+typealias PickerAllCancelHandler = (() -> Void)
+
+
+
 /**
  当前控件类型
  
@@ -41,6 +57,8 @@ class LWPickerView: UIView {
     
     private var contentView = UIView()
     private var pickerView: UIPickerView!
+    private var cancelHandler: PickerAllCancelHandler?
+    
     
     private var contentBottomConstraint: NSLayoutConstraint!
     private var windowHoriConstraints: [NSLayoutConstraint]?
@@ -54,6 +72,9 @@ class LWPickerView: UIView {
     private lazy var dataSource: [String] = {
         return [String]()
     }()
+    private var selectedRow: Int = 0
+    private var selectedResult: String?
+    private var aloneTypeDoneHandler: PickerTypeAloneDoneHandler?
     
     
     
@@ -103,30 +124,30 @@ class LWPickerView: UIView {
     private func setupToolBarWithTitle(aTitle: String?) -> UIToolbar {
         
         // Cancel Item
-        let leftItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Cancel,
+        let leftItem = UIBarButtonItem(barButtonSystemItem: .Cancel,
                                        target: self,
                                        action: #selector(LWPickerView.dismiss))
         leftItem.tintColor = kItemColor
         
         // Left Space Item
-        let leftSpaceItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.FlexibleSpace,
+        let leftSpaceItem = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace,
                                             target: nil,
                                             action: nil)
         
         // Title Item
         let titleItem = UIBarButtonItem(title: aTitle,
-                                        style: UIBarButtonItemStyle.Done,
+                                        style: .Done,
                                         target: nil,
                                         action: nil)
         titleItem.tintColor = kItemColor
         
         // Right Space Item
-        let rightSpaceItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.FlexibleSpace,
+        let rightSpaceItem = UIBarButtonItem(barButtonSystemItem: .FlexibleSpace,
                                              target: nil,
                                              action: nil)
         
         // Done Item
-        let rightItem = UIBarButtonItem(barButtonSystemItem: UIBarButtonSystemItem.Done,
+        let rightItem = UIBarButtonItem(barButtonSystemItem: .Done,
                                         target: self,
                                         action: #selector(LWPickerView.done))
         rightItem.tintColor = kItemColor
@@ -148,7 +169,7 @@ class LWPickerView: UIView {
         switch pickerType {
         case .DateMode:
             print("DateMode")
-            break
+            
         default:
             picker = UIPickerView(frame: CGRectZero)
             picker.dataSource = self
@@ -164,7 +185,37 @@ class LWPickerView: UIView {
     // MARK: - Target actions
     
     func dismiss() {
-
+        
+        dismissSelf()
+        cancelHandler?()
+    }
+    
+    func done() {
+        
+        dismissSelf()
+        
+        switch pickerType {
+        case .Alone:
+            guard dataSource.count > 0 else {
+                print("当前Picker数据源数量为0")
+                return
+            }
+            if let result = selectedResult {
+                aloneTypeDoneHandler?(selectedRow: selectedRow, result: result)
+            } else {
+                aloneTypeDoneHandler?(selectedRow: 0, result: dataSource[0])
+            }
+            
+        default:
+            break
+        }
+        
+    }
+    
+    // MARK: - Helper methods
+    
+    private func dismissSelf() {
+        
         UIView.animateWithDuration(kDismiss_Duration, animations: {
             self.backgroundColor = UIColor.blackColor().colorWithAlphaComponent(0.0)
             self.contentBottomConstraint.constant = kToolBarHeight + kPickerHeight
@@ -178,11 +229,6 @@ class LWPickerView: UIView {
         }
     }
     
-    func done() {
-        
-        dismiss()
-    }
-    
     
     // MARK: - Helper for constraints
     
@@ -190,21 +236,21 @@ class LWPickerView: UIView {
         
         contentView.translatesAutoresizingMaskIntoConstraints = false
         let horiConstraints = NSLayoutConstraint.constraintsWithVisualFormat("H:|[contentView]|",
-                                                                             options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                             options: .DirectionLeadingToTrailing,
                                                                              metrics: nil,
                                                                              views: ["contentView" : contentView])
         contentBottomConstraint = NSLayoutConstraint(item: contentView,
-                                                     attribute: NSLayoutAttribute.Bottom,
-                                                     relatedBy: NSLayoutRelation.Equal,
+                                                     attribute: .Bottom,
+                                                     relatedBy: .Equal,
                                                      toItem: self,
-                                                     attribute: NSLayoutAttribute.Bottom,
+                                                     attribute: .Bottom,
                                                      multiplier: 1.0,
                                                      constant: 0.0)
         let heightConstraint = NSLayoutConstraint(item: contentView,
-                                                  attribute: NSLayoutAttribute.Height,
-                                                  relatedBy: NSLayoutRelation.Equal,
+                                                  attribute: .Height,
+                                                  relatedBy: .Equal,
                                                   toItem: nil,
-                                                  attribute: NSLayoutAttribute.NotAnAttribute,
+                                                  attribute: .NotAnAttribute,
                                                   multiplier: 1.0,
                                                   constant: kPickerHeight + kToolBarHeight)
         
@@ -222,11 +268,11 @@ class LWPickerView: UIView {
         
         translatesAutoresizingMaskIntoConstraints = false
         windowHoriConstraints = NSLayoutConstraint.constraintsWithVisualFormat("H:|[self]|",
-                                                                               options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                               options: .DirectionLeadingToTrailing,
                                                                                metrics: nil,
                                                                                views: ["self" : self])
         windowVertConstraints = NSLayoutConstraint.constraintsWithVisualFormat("V:|[self]|",
-                                                                               options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                               options: .DirectionLeadingToTrailing,
                                                                                metrics: nil,
                                                                                views: ["self" : self])
         if #available(iOS 8.0, *) {
@@ -240,11 +286,11 @@ class LWPickerView: UIView {
     
     private func windowRemoveConstraints() {
         
-        if let horiConstraints = self.windowHoriConstraints {
-            self.removeConstraints(horiConstraints)
+        if let horiConstraints = windowHoriConstraints {
+            removeConstraints(horiConstraints)
         }
-        if let vertConstraints = self.windowVertConstraints {
-            self.removeConstraints(vertConstraints)
+        if let vertConstraints = windowVertConstraints {
+            removeConstraints(vertConstraints)
         }
     }
     
@@ -252,39 +298,38 @@ class LWPickerView: UIView {
         // ToolBar
         toolBar.translatesAutoresizingMaskIntoConstraints = false
         let horiForToolBarConstrants = NSLayoutConstraint.constraintsWithVisualFormat("H:|[toolBar]|",
-                                                                                      options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                                      options: .DirectionLeadingToTrailing,
                                                                                       metrics: nil,
                                                                                       views: ["toolBar" : toolBar])
         let heightForToolBarConstrant = NSLayoutConstraint(item: toolBar,
-                                                           attribute: NSLayoutAttribute.Height,
-                                                           relatedBy: NSLayoutRelation.Equal,
+                                                           attribute: .Height,
+                                                           relatedBy: .Equal,
                                                            toItem: nil,
-                                                           attribute: NSLayoutAttribute.NotAnAttribute,
+                                                           attribute: .NotAnAttribute,
                                                            multiplier: 1.0,
                                                            constant: kToolBarHeight)
         // PickerView
         pickerView.translatesAutoresizingMaskIntoConstraints = false
         let horiForPickerConstrants = NSLayoutConstraint.constraintsWithVisualFormat("H:|[pickerView]|",
-                                                                                     options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                                     options: .DirectionLeadingToTrailing,
                                                                                      metrics: nil,
                                                                                      views: ["pickerView" : pickerView])
         let heightForPickerConstrant = NSLayoutConstraint(item: pickerView,
-                                                          attribute: NSLayoutAttribute.Height,
-                                                          relatedBy: NSLayoutRelation.Equal,
+                                                          attribute: .Height,
+                                                          relatedBy: .Equal,
                                                           toItem: nil,
-                                                          attribute: NSLayoutAttribute.NotAnAttribute,
+                                                          attribute: .NotAnAttribute,
                                                           multiplier: 1.0,
                                                           constant: kPickerHeight)
         
         // Vert
         let vertConstrants = NSLayoutConstraint.constraintsWithVisualFormat("V:|[toolBar][pickerView]|",
-                                                                            options: NSLayoutFormatOptions.DirectionLeadingToTrailing,
+                                                                            options: .DirectionLeadingToTrailing,
                                                                             metrics: nil,
                                                                             views: ["toolBar" : toolBar, "pickerView" : pickerView])
         
         contentView.addConstraints(horiForToolBarConstrants)
         contentView.addConstraint(heightForToolBarConstrant)
-        
         contentView.addConstraints(horiForPickerConstrants)
         contentView.addConstraint(heightForPickerConstrant)
         contentView.addConstraints(vertConstrants)
@@ -312,25 +357,54 @@ extension LWPickerView: UIGestureRecognizerDelegate {
 extension LWPickerView: UIPickerViewDataSource, UIPickerViewDelegate {
 
     func numberOfComponentsInPickerView(pickerView: UIPickerView) -> Int {
-        return 1
+        
+        switch pickerType {
+        case .Alone:
+            return 1
+            
+        default:
+            return 0
+        }
     }
     
     func pickerView(pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return dataSource.count
+        
+        switch pickerType {
+        case .Alone:
+            return dataSource.count
+            
+        default:
+            return 0
+        }
     }
     
     func pickerView(pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        return dataSource[row]
+        
+        switch pickerType {
+        case .Alone:
+            return dataSource[row]
+            
+        default:
+            return nil
+        }
     }
     
     func pickerView(pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         
+        switch pickerType {
+        case .Alone:
+            selectedRow = row
+            selectedResult = dataSource[row]
+            
+        default:
+            break
+        }
     }
     
 }
 
 
-// MARK: - Public methods
+// MARK: - ================== Public methods ==================
 
 extension LWPickerView {
 
@@ -354,7 +428,7 @@ extension LWPickerView {
                                    delay: 0.1,
                                    usingSpringWithDamping: 0.8,
                                    initialSpringVelocity: 0.0,
-                                   options: UIViewAnimationOptions.CurveEaseOut,
+                                   options: .CurveEaseOut,
                                    animations: { 
                                     
                                     self.contentBottomConstraint.constant = 0
@@ -362,6 +436,15 @@ extension LWPickerView {
                                     
             }, completion: nil)
     }
+    
+    
+    /**
+     取消回调
+     */
+    func didClickCancelHandler(handler: PickerAllCancelHandler?) {
+        cancelHandler = handler
+    }
+    
 
 }
 
@@ -410,7 +493,18 @@ extension LWPickerView {
             return
         }
         
+        // 更新选择的行和值
         pickerView.selectRow(aRow, inComponent: 0, animated: animated)
+        selectedRow = aRow
+        selectedResult = dataSource[aRow]
+    }
+    
+    
+    /**
+     Alone类型Picker点击确定回调
+     */
+    func didClickDoneWithTypeAloneHandler(handler: PickerTypeAloneDoneHandler?) {
+        aloneTypeDoneHandler = handler
     }
     
 }

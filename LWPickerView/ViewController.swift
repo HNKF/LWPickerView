@@ -10,7 +10,7 @@ import UIKit
 
 class ViewController: UIViewController {
 
-    let picker = LWPickerView(aDataSource: ["3", "2", "1", "23", "3", "2", "1", "23"], aTitle: nil)
+    let picker = LWPickerView(aDataSource: ["3", "2", "1", "23", "3", "2", "1", "23"], aTitle: "Title")
     
     
     override func viewDidLoad() {
@@ -23,6 +23,10 @@ class ViewController: UIViewController {
         super.viewDidAppear(animated)
         picker.show()
         picker.showSelectedRow(3, animated: true)
+        picker.didClickDoneWithTypeAloneHandler { (selectedRow, result) in
+            print(selectedRow)
+            print(result)
+        }
     }
     
     
