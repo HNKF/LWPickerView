@@ -1,6 +1,8 @@
 # LWPickerView
 LWPickerView
 
+一、单列数据选择器：
+
     // MARK: - AlonePicker
 
     private let alonePicker: LWPickerView = {
@@ -25,6 +27,8 @@ LWPickerView
     }
 
 
+二、日期选择器：
+
     // MARK: - DateModePicker
 
     private let datePicker: LWPickerView = {
@@ -44,6 +48,8 @@ LWPickerView
         }
     }
 
+
+三、城市地区选择器：
 
     // MARK: - AreaPicker
 
