@@ -1,6 +1,8 @@
 # LWPickerView
 LWPickerView
 
+Deployment Target iOS 7.0
+
 一、单列数据选择器：
 
     // MARK: - AlonePicker
