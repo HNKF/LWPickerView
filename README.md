@@ -1,5 +1,5 @@
 # LWPickerView
-LWPickerView
+日期选择器、单列选择器、地区选择器。
 
 Deployment Target iOS 7.0
 
